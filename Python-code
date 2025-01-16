@@ -1,0 +1,58 @@
+import csv
+from openai import OpenAI
+
+# Initialize OpenAI client
+client = OpenAI(base_url="http://localhost:1234/v1", api_key="lm-studio")
+
+# Input and output file paths
+input_csv = "input.csv"
+output_csv = "output.csv"
+
+# Open the input CSV file
+with open(input_csv, mode="r", newline="", encoding="utf-8") as infile, \
+     open(output_csv, mode="w", newline="", encoding="utf-8") as outfile:
+
+    # Read the input CSV
+    reader = csv.reader(infile)
+    header = next(reader)  # Skip header row if present
+    if len(header) == 2:
+        header_row = header
+    else:
+        header_row = ["Column1", "Column2"]
+
+    # Write to the output CSV with a new column for LLM responses
+    writer = csv.writer(outfile)
+    writer.writerow(header_row + ["LLM_Output"])  # Write header for output CSV
+
+    # Iterate through each row in the input CSV
+    for row in reader:
+        # Ensure row has the required two columns and the second column is not empty
+        if len(row) >= 2 and row[1].strip():
+            try:
+                # Extract the text from the second column
+                user_input = row[1]
+
+                # Send the text to the LLM
+                completion = client.chat.completions.create(
+                    model="hermes-3-llama-3.1-8b",
+                    messages=[
+                        {"role": "system", "content": "You are a helpful assistant."},
+                        {"role": "user", "content": user_input}
+                    ]
+                )
+
+                # Get the response content from the LLM
+                llm_output = completion.choices[0].message.content
+
+            except Exception as e:
+                # If there's an error, record it in the output file
+                llm_output = f"Error: {str(e)}"
+
+            # Write the original row and the LLM output to the output CSV
+            writer.writerow(row + [llm_output])
+
+        else:
+            # Skip rows that don't meet criteria
+            print(f"Skipping row: {row}")
+
+print("Processing completed. Results are saved in 'output.csv'.")
