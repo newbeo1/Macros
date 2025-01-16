@@ -1,0 +1,59 @@
+import openpyxl
+from openai import OpenAI
+
+# Initialize OpenAI client
+client = OpenAI(base_url="http://localhost:1234/v1", api_key="lm-studio")
+
+# Input Excel file path
+excel_file = "input.xlsx"
+
+# Open the Excel workbook
+try:
+    workbook = openpyxl.load_workbook(excel_file)
+    sheet = workbook.active
+
+    # Ensure the sheet has at least two columns
+    if sheet.max_column < 2:
+        raise ValueError("The Excel file must have at least two columns.")
+
+    # Add a header for the third column if not already present
+    if sheet.cell(row=1, column=3).value is None:
+        sheet.cell(row=1, column=3).value = "LLM_Output"
+
+    # Process each row in the Excel file, starting from the second row
+    for row in sheet.iter_rows(min_row=2, max_row=sheet.max_row, min_col=1, max_col=2):
+        # Read the values from the first two columns
+        col1_value = row[0].value
+        col2_value = row[1].value
+
+        # Skip rows with an empty second column
+        if col2_value is None or str(col2_value).strip() == "":
+            print(f"Skipping row: {row[0].row} (Empty second column)")
+            continue
+
+        try:
+            # Send the text in the second column to the LLM
+            completion = client.chat.completions.create(
+                model="hermes-3-llama-3.1-8b",
+                messages=[
+                    {"role": "system", "content": "You are a helpful assistant."},
+                    {"role": "user", "content": str(col2_value)}
+                ]
+            )
+
+            # Get the response content from the LLM
+            llm_output = completion.choices[0].message.content
+
+        except Exception as e:
+            # Handle errors gracefully
+            llm_output = f"Error: {str(e)}"
+
+        # Write the LLM output to the third column of the current row
+        sheet.cell(row=row[0].row, column=3, value=llm_output)
+
+    # Save the updated Excel file
+    workbook.save(excel_file)
+    print(f"Processing completed. Results saved in '{excel_file}'.")
+
+except Exception as e:
+    print(f"An error occurred: {e}")
