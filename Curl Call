@@ -1,0 +1,4 @@
+Function GetLLM(sQuery As String) As String
+cCMD = "curl http://localhost:1234/v1/chat/completions -H " & Chr(34) & "Content-Type: application/json" & Chr(34) & " -d '{" & Chr(34) & "model" & Chr(34) & ": " & Chr(34) & "hermes-3-llama-3.1-8b" & Chr(34) & "," & Chr(34) & "messages" & Chr(34) & ": [ { " & Chr(34) & "role" & Chr(34) & ": " & Chr(34) & "user" & Chr(34) & ", " & Chr(34) & "content" & Chr(34) & ": " & Chr(34) & sQuery & Chr(34) & " }]," & Chr(34) & "stream" & Chr(34) & ": false ]'"
+MsgBox cCMD
+End Function
